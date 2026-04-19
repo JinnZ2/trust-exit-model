@@ -7,7 +7,7 @@ Behavioral segmentation framework modeling how trust violations cause permanent 
 ## Project Structure
 
 - `src/` — Python modules (the model implementation)
-- `tests/` — pytest test suite (65 tests)
+- `tests/` — pytest test suite (79 tests)
 - `examples/` — runnable scenario scripts
 - `docs/` — formalized equations and the ZNP research paper
 
@@ -81,3 +81,5 @@ The Thermodynamic Accountability Framework (TAF) mirrors this repo's stable surf
 - `alpha`/`beta` decay constants
 - 0.80 / 0.50 / 0.25 / 0.05 phase-boundary thresholds
 - 0.60 ZNP fingerprint cutoff
+
+**Wire-format commitment**: `TrustPhase` is serialized as its name-string (`"FULL_TRUST"` etc.), never as its `IntEnum` integer. `src/contract_export.py` is the canonical emitter; regression tests in `tests/test_contract_export.py` pin this.
