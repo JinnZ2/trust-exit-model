@@ -7,7 +7,7 @@ Behavioral segmentation framework modeling how trust violations cause permanent 
 ## Project Structure
 
 - `src/` — Python modules (the model implementation)
-- `tests/` — pytest test suite (54 tests)
+- `tests/` — pytest test suite (65 tests)
 - `examples/` — runnable scenario scripts
 - `docs/` — formalized equations and the ZNP research paper
 
@@ -65,3 +65,19 @@ Six interconnected models, all in `src/`:
 - `from __future__ import annotations` in all modules
 - Dataclasses for models, enums for categories
 - No external dependencies beyond stdlib + pytest
+
+## Published Contract (for external consumers)
+
+The Thermodynamic Accountability Framework (TAF) mirrors this repo's stable surface at [`schemas/trust_exit_contract.py`](https://github.com/JinnZ2/thermodynamic-accountability-framework/blob/main/schemas/trust_exit_contract.py) (`CONTRACT_VERSION = "1.0.0"`). External consumers should import that mirror rather than this package — it stays stdlib-only and is versioned independently.
+
+**Contract-stable surface** (breaking changes bump the mirror's major version):
+- `TrustPhase` (5-member IntEnum, name + ordering fixed)
+- `TrustState` (`trust_level`, `phase`, `violations_count`, `recovery_potential`)
+- `CustomerSegment` (`DOER`, `GAMBLER`)
+- `Customer` public fields
+- Derived scalars: `nev`, `ltv`, `fingerprint_score`, `is_znp`, `gate_failure` profile
+
+**Not in the contract** (calibration knobs, may retune without a version bump):
+- `alpha`/`beta` decay constants
+- 0.80 / 0.50 / 0.25 / 0.05 phase-boundary thresholds
+- 0.60 ZNP fingerprint cutoff
