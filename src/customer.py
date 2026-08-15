@@ -28,8 +28,13 @@ class CustomerSegment(Enum):
 # A trust violation's perceived severity is compared against this threshold.
 # If severity >= threshold, trust drops immediately to the next phase.
 DEFAULT_MANIPULATION_TOLERANCE: dict[CustomerSegment, float] = {
-    CustomerSegment.DOER: 0.95,     # Low tolerance (amplifies decay)
-    CustomerSegment.GAMBLER: 0.95,  # Same baseline; segment difference is in alpha
+    # NOTE: these are deliberately identical. Under default calibration the
+    # entire Doer/Gambler difference is carried by alpha, so M acts as a shared
+    # constant divisor in exp(-alpha * S / M) and cancels out of every
+    # cross-segment comparison. Whether M *should* differ by segment is an open
+    # question — see U5 in docs/method.md. Per-customer overrides still work.
+    CustomerSegment.DOER: 0.95,
+    CustomerSegment.GAMBLER: 0.95,
 }
 
 

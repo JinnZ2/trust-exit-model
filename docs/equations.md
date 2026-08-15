@@ -29,6 +29,10 @@ T(n) = T(n-1) * exp(-alpha * S_n / M)
 - Low-tolerance customers experience amplified decay (small `M` -> larger exponent)
 - Multiple small violations compound multiplicatively
 
+> **Calibration note.** `M` defaults to `0.95` for *both* segments, so this
+> second lever is inert unless overridden per-customer: the whole Doer/Gambler
+> difference is carried by `alpha`. Tracked as U5 in [method.md](./method.md).
+
 ### 1.2 Passive Erosion (Between Violations)
 
 ```
