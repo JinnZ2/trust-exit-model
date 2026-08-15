@@ -58,13 +58,15 @@ trust-exit-model/
 │   ├── support_cartography.py    # Three-gate framework (emission/capture/retention)
 │   ├── znp_gate_bridge.py        # Maps ZNP signals onto the three gates
 │   └── contract_export.py        # Stable-surface emitter for external consumers
-├── tests/                        # Test suite (90 tests)
+├── tests/                        # Test suite (110 tests)
 ├── examples/
 │   └── dynamic_pricing_analysis.py  # End-to-end scenario analysis
 ├── docs/
 │   ├── equations.md              # Formalized mathematical equations
 │   ├── method.md                 # Claim register, falsification log, open unknowns
 │   └── zero-nudge-population.md  # Original ZNP research paper
+├── tools/
+│   └── instrument_explorer.py    # Searches for ways to measure the open unknowns
 ├── legacy/                       # Superseded / unwired modules, retained
 ├── CLAUDE.md                     # Development guide
 └── README.md
@@ -78,7 +80,7 @@ the break is logged with what it exposed.
 
 [`docs/method.md`](docs/method.md) holds the claim register, the falsification log,
 and the open unknowns. **Read the unknowns before quoting any dollar figure below.**
-The model's internal logic is pinned by 90 tests; its decay constants and the real
+The model's internal logic is pinned by 110 tests; its decay constants and the real
 Doer population fraction are not yet measured against field data, and no amount of
 testing inside this repo can change that.
 
@@ -90,6 +92,10 @@ python examples/dynamic_pricing_analysis.py
 
 # Run tests
 python -m pytest tests/ -v
+
+# Search for instruments that could close the open unknowns
+python tools/instrument_explorer.py
+python tools/instrument_explorer.py --unknown U2
 ```
 
 ## Example Output

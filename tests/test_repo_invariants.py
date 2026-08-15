@@ -19,6 +19,7 @@ SRC = REPO_ROOT / "src"
 TESTS = REPO_ROOT / "tests"
 LEGACY = REPO_ROOT / "legacy"
 EXAMPLES = REPO_ROOT / "examples"
+TOOLS = REPO_ROOT / "tools"
 README = REPO_ROOT / "README.md"
 CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 
@@ -123,7 +124,7 @@ class TestLegacyIsolation:
 
     def test_nothing_live_imports_legacy(self) -> None:
         offenders: list[str] = []
-        for directory in (SRC, TESTS, EXAMPLES):
+        for directory in (SRC, TESTS, EXAMPLES, TOOLS):
             for path in sorted(directory.glob("*.py")):
                 if path.name == Path(__file__).name:
                     continue  # this file names `legacy` only as a string

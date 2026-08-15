@@ -93,13 +93,120 @@ Live claims and what would break each one.
 | C6 | `TrustPhase` serializes as name-string, never as its IntEnum integer | An emitted payload containing an integer phase | Holds (pinned, `test_contract_export.py`) |
 | C7 | A $5 extraction destroys $3,661 of Doer LTV at severity 0.50 | Running the example and getting another number | Holds (verified against live run, to the cent) |
 | C8 | Break-even Doer fraction is 0.14% | Same | Holds internally — but see U2 |
-| C9 | Low manipulation tolerance amplifies decay for Doers | Both segments carrying the same `M` | **FALSIFIED** — see F5 |
+| C9 | Low manipulation tolerance amplifies decay for Doers | Both segments carrying the same `M` | **FALSIFIED** — see F5, and structurally void per P1 |
+| C10 | `alpha` and `M` are separate levers | Ratio-preserving pairs producing identical output | **FALSIFIED** — P1: they enter only as `alpha/M` |
+| C11 | LTV responds continuously to trust level | LTV taking finitely many values across [0,1] | **FALSIFIED** — P2: exactly 5 values, one per phase |
+| C12 | Break-even stays under 1% across plausible `alpha` | A sweep leaving that range | Holds (pinned, `test_instrument_explorer.py`) |
 
 ---
 
 ## Falsification log
 
 Newest first. Each entry: what was claimed, what running it showed, what changed.
+
+### 2026-08-15 — instrument search over the open unknowns
+
+The previous entry closed with "no test inside this repo can close U1 or U2."
+That is a statement about *measurement*, and it went unexamined. Built
+[`tools/instrument_explorer.py`](../tools/instrument_explorer.py) to search the
+instrument space instead of asserting it, and ran its three probes against the
+live model.
+
+Two of the six unknowns turned out not to need field data at all. One of them
+was not a measurement question in the first place.
+
+**P1 — `alpha` and `M` are structurally non-identifiable. U5 is resolved.**
+
+In `T(n) = T(n-1) * exp(-alpha * S / M)` the two constants enter *only* through
+the ratio `alpha/M`. Four (alpha, M) pairs sharing ratio 2.1053 — all with M
+inside the documented (0,1] domain — produce bit-identical post-violation trust
+(`0.3490180709`) and identical NEV:
+
+| alpha | M | alpha/M | post-trust | NEV |
+|------:|--:|--------:|-----------:|----:|
+| 2.00 | 0.9500 | 2.1053 | 0.3490180709 | -$3,661.31 |
+| 1.50 | 0.7125 | 2.1053 | 0.3490180709 | -$3,661.31 |
+| 1.00 | 0.4750 | 2.1053 | 0.3490180709 | -$3,661.31 |
+| 0.50 | 0.2375 | 2.1053 | 0.3490180709 | -$3,661.31 |
+
+No observation of trust, spend, or exit can distinguish these. U5 asked "should
+`M` differ by segment, and what is the right value?" — the question has no
+empirical answer, because `M` is redundant with `alpha` by construction. This
+is a proof, not a budget problem. Status changed from open-unknown to
+**non-identifiable**, kept in the register with its result per the precedence
+rule. The remaining decision is a design one: collapse `M` into `alpha`, or fix
+`M` by convention and document that only the ratio is ever fitted.
+
+**P2 — every dollar figure is quantized to five values. New unknown U7.**
+
+Swept 1,001 trust levels across [0,1]. `compute_ltv` emits exactly **5 distinct
+values**, jumping only at 0.05 / 0.25 / 0.50 / 0.80 — the phase boundaries:
+
+| boundary | LTV below → above | step |
+|---------:|------------------|-----:|
+| 0.05 | $0.00 → $611.05 | $611.05 |
+| 0.25 | $611.05 → $2,444.21 | $1,833.15 |
+| 0.50 | $2,444.21 → $5,193.94 | **$2,749.73** |
+| 0.80 | $5,193.94 → $6,110.51 | $916.58 |
+
+`compute_ltv` multiplies by `PHASE_REVENUE_MULTIPLIER[phase]`, so the continuous
+`trust_level` does nothing except select a bucket. All the continuous machinery
+— exponential decay, `alpha`, `beta`, `M` — is a phase classifier wearing a
+curve's clothes at the point where dollars are computed.
+
+The consequence is uncomfortable. `CLAUDE.md` lists the phase boundaries and the
+`mu` multipliers under *"Not in the contract (calibration knobs, may retune
+without a version bump)"* — but moving the 0.50 boundary shifts a Doer's LTV by
+$2,749.73 on the README's own inputs, with no version signal to any downstream
+consumer. **The parameters declared freely retunable are the ones that actually
+set every published number.** Logged as **U7**, weighted 0.95.
+
+**P3 — the headline claim is robust to `alpha`. U1 downgraded.**
+
+Swept Doer `alpha` from 0.5 to 8.0 — a 16× range spanning every plausible value.
+Break-even Doer fraction stayed within **[0.082%, 0.546%]**, never approaching
+1%. The qualitative claim ("a fraction of one percent of Doers makes dynamic
+pricing net-negative") survives the entire range; what U1 threatens is the third
+decimal place of C8, not the conclusion.
+
+U1's load-bearing weight drops from 1.00 to 0.60, and **U2 moves to the top of
+the queue**. The number that cannot be wrong is the population fraction, not the
+decay rate. The previous entry's claim that "U1 and U2 are the load-bearing
+ones" was half right, and the wrong half was the one it listed first.
+
+**The blocked-instrument finding.** Ranking candidate instruments by leverage
+surfaced something the prose in the unknowns table had glossed. U2's stated
+route was "population survey or a churn cohort scored by the fingerprint" —
+and both self-report instruments are structurally defeated:
+
+- Exit interviews: `complaint_absence` and `exit_data_quality` are *scored ZNP
+  signals* in `behavioral_fingerprint.py`. Non-completion of an exit survey is a
+  positive ZNP indicator. Sizing the population from its completions inverts the
+  sign of the evidence.
+- Tolerance surveys: Doers under-respond by definition, so the instrument
+  undercounts exactly the segment it exists to measure.
+
+You cannot survey a population defined by non-response. The one unblocked route
+found is **silent-churn cohort reconstruction** — read the absence from retained
+logs without contacting anyone, which is precisely what `support_cartography`'s
+RETENTION gate describes. The explorer flags it as the only viable path to U2,
+and a test pins that finding so it fails loudly if a second route is added or
+this one is removed.
+
+The ranking also, on first run, recommended a randomized price-variation trial
+as the #4 instrument while its own caveat said not to run it — measuring harm by
+inflicting it on a randomly chosen arm. Added an explicit ethics gate that is
+deliberately *excluded* from the leverage score: cost-effectiveness and
+permission are separate axes, and collapsing them is how a tool launders its own
+warning into a recommendation.
+
+**Pinned.** `tests/test_instrument_explorer.py` (20 tests) fixes P1's exact
+collapse, P2's five-value quantization and boundary locations, P3's sub-1%
+range, and the catalog invariants — blocked and ethics-gated instruments must
+never appear in the actionable queue, every instrument must state a falsifier,
+and the register must not drift from this document.
+
+**Reran.** 110 passed, example output unchanged. Loop closed.
 
 ### 2026-08-15 — audit pass over the descriptive layer
 
@@ -170,19 +277,32 @@ Things nothing in this repo currently measures. These are not bugs. They are the
 edges of what the model is entitled to claim, and every one of them is a place
 where a green test suite means less than it appears to.
 
-| ID | Unknown | Why it matters | What would close it |
-|----|---------|----------------|---------------------|
-| **U1** | `alpha` = 2.0 / 0.3 is asserted, never fitted | Every downstream number — LTV loss, NEV, break-even — inherits this. The suite is self-consistent, not validated. | Observed trust/spend trajectories after a dated pricing violation, fitted per segment |
-| **U2** | The real Doer fraction is unmeasured | C8 says dynamic pricing turns net-negative above 0.14% Doers. Whether that threshold is crossed is the entire practical question, and this repo cannot answer it. | Population survey or a churn cohort scored by the fingerprint |
-| **U3** | The ZNP cutoff `F >= 0.60` is unvalidated | It sets who counts as ZNP at all. No test exercises its sensitivity; a shift to 0.55 or 0.65 has never been priced. | Labeled exits, false-positive/false-negative curve across cutoffs |
-| **U4** | 12 of `support_cartography.py`'s 13 public names are unused | Only `Gate` is consumed, by `znp_gate_bridge.py`. `CollapseRateEstimator`, `ProjectionLossSimulator`, `SupportBoundaryMapper` and the rest are untested here — same "no evidence either way" position as `legacy/`, but on the live import path. | Either bridge and test them, or move the unused surface to `legacy/` |
-| **U5** | Is `M` supposed to differ by segment? | Raised by F5. If yes, the current calibration is wrong and C4/C5/C7/C8 all move. If no, `M` is redundant with `alpha` and the two-lever design is misleading. | An intended Doer tolerance value with a rationale, or a decision to collapse `M` into `alpha` |
-| **U6** | WOM constants (reach 5, conversion 0.08, decay 0.85, second-order 0.30/3/0.03) are all assumed | Drives the `$17.50` WOM cost and every CAC-impact number | Referral/defection tracing from a known exit cohort |
+Weights and statuses below are mirrored in `tools/instrument_explorer.py`, and a
+test fails if the two drift apart. Run `python tools/instrument_explorer.py
+--unknown U2` for the candidate instruments behind any row.
 
-**U1 and U2 are the load-bearing ones.** Everything the README asserts about
-dollars rests on them. The model's internal logic is pinned by 90 tests; its
-contact with reality is pinned by nothing yet, and no amount of additional
-testing inside this repo can change that. Saying so plainly is part of the method.
+| ID | Unknown | Weight | Status | Route |
+|----|---------|-------:|--------|-------|
+| **U7** | Phase boundaries + `mu` multipliers dominate every dollar figure | 0.95 | identifiable | Discovered by P2. `CLAUDE.md` lists them as freely retunable knobs outside the contract; moving the 0.50 boundary shifts a Doer's LTV by $2,749.73. Needs either a boundary-fitting instrument (I1/I4) or promotion into the versioned contract. |
+| **U2** | The real Doer fraction is unmeasured | 1.00 | **blocked** except one route | C8 says dynamic pricing turns net-negative above 0.14% Doers. Every self-report instrument is defeated by non-emission. Only I6 (silent-churn cohort reconstruction) is viable — read the absence from retained logs, contact nobody. |
+| **U3** | The ZNP cutoff `F >= 0.60` is unvalidated | 0.70 | **blocked** upstream | Needs labeled exits, and labels come from people who answer — the complement of ZNP. Unblocks only once I6 or I1 supplies labels; then I7 draws the ROC. |
+| **U1** | `alpha` = 2.0 / 0.3 asserted, never fitted | 0.60 | identifiable | Downgraded from 1.00 by P3: break-even holds in [0.082%, 0.546%] across a 16× sweep. Threatens C8's third decimal, not the conclusion. |
+| **U6** | WOM constants (reach 5, conv 0.08, decay 0.85, second-order 0.30/3/0.03) assumed | 0.40 | identifiable | Drives the $17.50 WOM cost. I5 traces referral defection — behavioral, not self-report, so it is not blocked. Misses offline WOM, which the ZNP paper argues is the dominant channel. |
+| **U5** | Should `M` differ by segment? | 0.30 | **non-identifiable** | **Resolved by P1.** `alpha` and `M` enter only as the ratio `alpha/M`; no dataset can separate them. Retained per the precedence rule. Remaining decision is design, not measurement. |
+| **U4** | 12 of `support_cartography.py`'s 13 public names unused | 0.10 | internal | Closable by a decision, not data: bridge and test them, or retire the unused surface to `legacy/`. |
+
+**U2 is the one that matters, and it is the hardest to reach.** P3 demoted U1;
+P2 promoted U7 above it. Everything the README asserts about dollars now rests
+on U2 and U7 — how many Doers there are, and where the phase boundaries sit.
+
+The model's internal logic is pinned by 110 tests. Its contact with reality is
+pinned by nothing yet, and no amount of additional testing inside this repo can
+change that. Saying so plainly is part of the method.
+
+What did change is the shape of the gap. Three of the six original unknowns
+turned out not to require field data at all — one was a proof (U5), one was a
+robustness result (U1), and one was a decision (U4). Searching the instrument
+space before budgeting for it is cheaper than any of the instruments.
 
 ---
 
