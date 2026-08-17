@@ -8,8 +8,19 @@ from src.behavioral_fingerprint import BehavioralFingerprint
 from src.community_amplification import CommunityAmplificationModel
 from src.dynamic_pricing_risk import DynamicPricingRiskModel
 from src.recovery_window import RecoveryWindowModel
+from src.support_cartography import Gate
+from src.znp_gate_bridge import GateFailureProfile, classify_gate_failures
+from src.contract_export import (
+    CONTRACT_VERSION,
+    export_customer,
+    export_derived,
+    export_gate_failure,
+    export_payload,
+    export_trust_state,
+)
 
 __all__ = [
+    # Core model
     "TrustState",
     "TrustPhase",
     "Customer",
@@ -20,4 +31,15 @@ __all__ = [
     "CommunityAmplificationModel",
     "DynamicPricingRiskModel",
     "RecoveryWindowModel",
+    # Gate bridge (three-gate framework from support_cartography)
+    "Gate",
+    "GateFailureProfile",
+    "classify_gate_failures",
+    # Contract export (see CLAUDE.md "Published Contract")
+    "CONTRACT_VERSION",
+    "export_customer",
+    "export_derived",
+    "export_gate_failure",
+    "export_payload",
+    "export_trust_state",
 ]

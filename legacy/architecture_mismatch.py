@@ -177,7 +177,7 @@ architecture-mismatch is detected, not just how to describe the concept.
 
 from dataclasses import dataclass, field
 from typing import Any
-from src.schema import DimensionScore, CalibrationReport, Band
+from legacy.schema import DimensionScore, CalibrationReport, Band
 
 
 # ═══════════════════════════════════════════════════════════════════════════
