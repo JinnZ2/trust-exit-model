@@ -136,3 +136,17 @@ The Thermodynamic Accountability Framework (TAF) mirrors this repo's stable surf
 > breaking until U7 is resolved, whatever this list says.
 
 **Wire-format commitment**: `TrustPhase` is serialized as its name-string (`"FULL_TRUST"` etc.), never as its `IntEnum` integer. `src/contract_export.py` is the canonical emitter; regression tests in `tests/test_contract_export.py` pin this.
+
+<!-- clone-refspec-note v1 -->
+## Cloning and pushing
+Shallow clones are single-branch by default.
+Before pushing any branch other than main, run:
+
+    git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+    git fetch --depth 1
+
+Or clone with: git clone --depth 1 --no-single-branch <url>
+Without this, the first push of a new branch
+fails the tracking-ref check even when the
+commit landed.
+<!-- /clone-refspec-note v1 -->
