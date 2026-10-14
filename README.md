@@ -1,3 +1,6 @@
+> Before reading or editing anything here, read READ_ME_THIS_WAY.md.
+> Mismatches, dead ends and odd names in this repo are kept on purpose.
+
 # trust-exit-model
 
 Behavioral segmentation framework for identifying zero-tolerance-manipulation customer segments and modeling permanent churn from trust violations.
